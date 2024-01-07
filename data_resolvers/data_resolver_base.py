@@ -68,6 +68,7 @@ class DataResolverBase(ABC):
 
 class DataResolverWithMinIdBase(DataResolverBase):
     def __init__(self, main_collection: Collection, remote_url: str):
+        assert 'minId={minId}' in remote_url, f"Missing minId query param in route {remote_url}!"
         super().__init__(main_collection, remote_url)
 
     def perform_next_fetch(self, fetched_data):
@@ -90,12 +91,17 @@ class DataDetailResolverBase(DataResolverBase):
             related_collection: Collection,
             related_col_key_name: str,
             route_param_name: str):
+        assert f"{{{route_param_name}}}" in remote_url, f"Missing {{{route_param_name}}} in route {remote_url}!"
         super().__init__(main_collection, remote_url)
         self._related_collection = related_collection
         self._related_col_key_name = related_col_key_name
         self._route_param_name = route_param_name
 
     async def get_all_remote_data_async(self):
+        list_of_params = self.get_list_of_params()
+        return await self.fetch_all_async(list_of_params)
+    
+    def get_list_of_params(self):
         all_keys = self._related_collection.distinct(self._related_col_key_name)
         list_of_params = []
         for key in all_keys:
@@ -103,7 +109,7 @@ class DataDetailResolverBase(DataResolverBase):
                 {
                     self._route_param_name: key
                 })
-        return await self.fetch_all_async(list_of_params)
+        return list_of_params
     
     def perform_next_fetch(self, fetched_data):
         return False

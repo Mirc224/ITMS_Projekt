@@ -3,8 +3,9 @@ from data_resolvers.data_resolver_base import DataResolverBase, DataResolverWith
 
 # https://opendata.itms2014.sk/v2/ciselniky
 class CiselnikyDataResolver(DataResolverBase):
-    def __init__(self, main_collection: Collection, remote_url: str):
-        super().__init__(main_collection, remote_url)
+    def __init__(self, ciselniky_collection: Collection, **kwargs):
+        url = 'https://opendata.itms2014.sk/v2/ciselniky'
+        super().__init__(ciselniky_collection, url)
 
     async def get_all_remote_data_async(self):
         return await self.fetch_all_async([{}])
@@ -14,8 +15,9 @@ class CiselnikyDataResolver(DataResolverBase):
 
 # https://opendata.itms2014.sk/v2/hodnotaCiselnika/{ciselnikKod}?minId={minId}
 class CiselnikyDetailDataResolver(DataResolverWithMinIdBase):
-    def __init__(self, main_collection: Collection, remote_url: str, ciselniky_collection: Collection):
-        super().__init__(main_collection, remote_url)
+    def __init__(self, ciselnikyDetail_collection: Collection, ciselniky_collection: Collection, **kwargs):
+        url = 'https://opendata.itms2014.sk/v2/hodnotaCiselnika/{ciselnikKod}?minId={minId}'
+        super().__init__(ciselnikyDetail_collection, url)
         self._ciselniky_collection = ciselniky_collection
 
     async def get_all_remote_data_async(self):
