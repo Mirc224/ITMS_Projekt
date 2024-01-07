@@ -1,26 +1,39 @@
-from data_resolvers.mongo_db_connection import MongoDBConnection
-import requests
+from pymongo.collection import Collection
+from data_resolvers.data_resolver_base import DataResolverBase
 
-class NezrovnalostDataResolver:
-    def __init__(self, connection:MongoDBConnection, db_name:str, nezrovnalost_col_name:str):
-        mongo_client = connection.client
-        itms_db = mongo_client.get_database(db_name)
-        self._nezrovnalost_collection = itms_db.get_collection(nezrovnalost_col_name)
-        self._remote_url_template = 'https://opendata.itms2014.sk/v2/nezrovnalost?minId={minId}'
+class NezrovnalostDataResolver(DataResolverBase):
+    def __init__(self, main_collection: Collection, remote_url: str):
+        super().__init__(main_collection, remote_url)
 
-    def fetch_remote_data(self):
-        remote_data = self.get_all_remote_data()
-        self._nezrovnalost_collection.delete_many({})
-        self._nezrovnalost_collection.insert_many(remote_data)
+    async def get_all_remote_data_async(self):
+        return await self.fetch_all_async([{ "minId": 0 }])
+    
+    def perform_next_fetch(self, fetched_data):
+        return True if fetched_data else False
+    
+    def get_updated_params(self, fetched_data, params:dict)-> dict:
+        min_id = max(fetched_data, key=lambda item: item["id"])['id']
+        params['minId'] = min_id
+        return params
 
-    def get_all_remote_data(self) -> list[dict]:
-        min_id = 0
-        all_data = []
-        while True:
-            current_url = self._remote_url_template.format(minId=min_id)
-            current_data_batch = requests.get(current_url).json()
-            if not current_data_batch:
-                break
-            all_data.extend(current_data_batch)
-            min_id = max(current_data_batch, key=lambda item: item["id"])['id']
-        return all_data
+# 'https://opendata.itms2014.sk/v2/nezrovnalost/{nezrovnalostId}'
+class NezrovnalostDetailDataResolver(DataResolverBase):
+    def __init__(self, main_collection: Collection, remote_url: str, nezrovnalosti_collection:Collection):
+        super().__init__(main_collection, remote_url)
+        self._nezrovnalosti_collection = nezrovnalosti_collection
+
+    async def get_all_remote_data_async(self):
+        all_nezrovnalosti_ids = self._nezrovnalosti_collection.distinct("id")
+        list_of_params = []
+        for nezrovnalost_id in all_nezrovnalosti_ids:
+            list_of_params.append(
+                {
+                    'nezrovnalostId': nezrovnalost_id
+                })
+        return await self.fetch_all_async(list_of_params)
+    
+    def perform_next_fetch(self, fetched_data):
+        return False
+    
+    def transform_fetched_data(self, fetched_data, **params:dict):
+        return [fetched_data]

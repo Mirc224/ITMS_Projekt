@@ -1,17 +1,44 @@
-# from data_resolvers.mongo_db_connection import MongoDBConnection
-# import time
-# connection = MongoDBConnection('./appsettings.json')
+import asyncio
+from data_resolvers.mongo_db_connection import MongoDBConnection
+from data_resolvers.ciselniky_data_resolver import CiselnikyDataResolver, CiselnikyDetailDataResolver
+from data_resolvers.nezrovnalost_data_resolver import NezrovnalostDataResolver, NezrovnalostDetailDataResolver
+from time import perf_counter
 
-# client = connection.client
+connection = MongoDBConnection('./appsettings.json')
+client = connection.client
+itms_db_name = 'itmsDB'
+db = client.get_database(itms_db_name)
+ciselniky_col_name = 'ciselniky' 
+ciselnikyDetail_col_name = 'ciselnikyDetail' 
+nezrovnalost_col_name = 'nezrovnalost'
+nezrovnalostDetail_col_name = 'nezrovnalostDetail'
 
-# print(client.list_database_names())
+ciselniky_collection = db.get_collection(ciselniky_col_name)
+ciselnikyDetail_collection = db.get_collection(ciselnikyDetail_col_name)
+nezrovnalost_collection = db.get_collection(nezrovnalost_col_name)
+nezrovnalostDetail_collection = db.get_collection(nezrovnalostDetail_col_name)
 
-# db = client.get_database("itmsDB")
 
-# collection = db.get_collection("users")
+start = perf_counter()
+# ciselniky_data_resolver = CiselnikyDataResolver(ciselniky_collection, 'https://opendata.itms2014.sk/v2/ciselniky')
+# asyncio.run(ciselniky_data_resolver.resolve_data())
 
-# collection.insert_one({"name":"Jakub", "age":20, "email":"jakub123@email.com", "address":"Hlavna 1, Bratislava", "orders":[], "subscription": True})
+# ciselnikyDetail_data_resolver = CiselnikyDetailDataResolver(
+#     ciselnikyDetail_collection, 
+#     'https://opendata.itms2014.sk/v2/hodnotaCiselnika/{ciselnikKod}?minId={minId}',
+#     ciselniky_collection)
+# asyncio.run(ciselnikyDetail_data_resolver.resolve_data())
 
-url = 'asd{minId}'
+# nezrovnalost_data_resolver = NezrovnalostDataResolver(
+#     nezrovnalost_collection, 
+#     'https://opendata.itms2014.sk/v2/nezrovnalost?minId={minId}')
+# asyncio.run(nezrovnalost_data_resolver.resolve_data())
 
-print(url.format(**{"minId":1}))
+# nezrovnalostDetail_data_resolver = NezrovnalostDetailDataResolver(
+#     nezrovnalostDetail_collection, 
+#     'https://opendata.itms2014.sk/v2/nezrovnalost/{nezrovnalostId}',
+#     nezrovnalost_collection)
+# asyncio.run(nezrovnalostDetail_data_resolver.resolve_data())
+
+stop = perf_counter()
+print("time taken:", stop - start)
