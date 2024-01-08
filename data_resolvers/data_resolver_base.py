@@ -4,7 +4,7 @@ from aiohttp import ClientSession
 from pymongo.collection import Collection
 from abc import ABC, abstractmethod
 from itertools import batched
-
+from time import perf_counter
 
 class DataResolverBase(ABC):
     def __init__(self, main_collection: Collection, remote_url:str):
@@ -16,6 +16,8 @@ class DataResolverBase(ABC):
         self._main_collection.delete_many({})
     
     def insert_data(self, data:list[dict]):
+        if not data:
+            return
         self._main_collection.insert_many(data)
     
     async def resolve_data(self):
@@ -23,6 +25,8 @@ class DataResolverBase(ABC):
         await self.get_and_store_all_remote_data_async()
 
     async def fetch_and_store_all_async(self, list_of_params:list[dict]):
+        print(f'{self._main_collection.name} - Ziskavanie dát...')
+        start = perf_counter()
         batch_size = self._parallel_requests if self._parallel_requests > 0 else len(list_of_params)
         
         for batch_of_params in batched(list_of_params, batch_size):
@@ -34,6 +38,8 @@ class DataResolverBase(ABC):
                 batch_data = await asyncio.gather(*tasks)
             data_to_insert = self.transform_data_to_insert(batch_data)
             self.insert_data(data_to_insert)
+        stop = perf_counter()
+        print(f'{self._main_collection.name} - Ziskavanie dát trvalo:', stop - start)
 
     async def fetch_async(self, s:ClientSession, params:dict):
         results = []
