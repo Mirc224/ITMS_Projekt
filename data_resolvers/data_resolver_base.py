@@ -10,26 +10,30 @@ class DataResolverBase(ABC):
     def __init__(self, main_collection: Collection, remote_url:str):
         self._main_collection = main_collection
         self._remote_url_template = remote_url
+        self._parallel_requests = -1
+
+    def delete_local_data(self):
+        self._main_collection.delete_many({})
+    
+    def insert_data(self, data:list[dict]):
+        self._main_collection.insert_many(data)
     
     async def resolve_data(self):
-        remote_data = await self.get_all_remote_data_async()
-        self._main_collection.delete_many({})
-        data_to_insert = self.transform_data_to_insert(remote_data)
-        self._main_collection.insert_many(data_to_insert)
+        self.delete_local_data()
+        await self.get_and_store_all_remote_data_async()
 
-    async def fetch_all_async(self, list_of_params:list[dict], batch_size:int=0):
-        if not batch_size > 0:
-            batch_size = len(list_of_params)
+    async def fetch_and_store_all_async(self, list_of_params:list[dict]):
+        batch_size = self._parallel_requests if self._parallel_requests > 0 else len(list_of_params)
         
-        results = []
         for batch_of_params in batched(list_of_params, batch_size):
             tasks = []
             async with aiohttp.ClientSession() as session:
                 for params in batch_of_params:
                     task = asyncio.create_task(self.fetch_async(session, params))
                     tasks.append(task)
-                results.extend(await asyncio.gather(*tasks))
-        return results
+                batch_data = await asyncio.gather(*tasks)
+            data_to_insert = self.transform_data_to_insert(batch_data)
+            self.insert_data(data_to_insert)
 
     async def fetch_async(self, s:ClientSession, params:dict):
         results = []
@@ -46,7 +50,7 @@ class DataResolverBase(ABC):
         return results
     
     @abstractmethod
-    async def get_all_remote_data_async(self):
+    async def get_and_store_all_remote_data_async(self):
         pass
     
     def transform_data_to_insert(self, all_data)-> list[dict]:
@@ -79,8 +83,8 @@ class DataResolverWithMinIdBase(DataResolverBase):
         params['minId'] = min_id
         return params
     
-    async def get_all_remote_data_async(self):
-        return await self.fetch_all_async([{ "minId": 0 }])
+    async def get_and_store_all_remote_data_async(self):
+        return await self.fetch_and_store_all_async([{ "minId": 0 }])
     
 
 class DataDetailResolverBase(DataResolverBase):
@@ -97,9 +101,9 @@ class DataDetailResolverBase(DataResolverBase):
         self._related_col_key_name = related_col_key_name
         self._route_param_name = route_param_name
 
-    async def get_all_remote_data_async(self):
+    async def get_and_store_all_remote_data_async(self):
         list_of_params = self.get_list_of_params()
-        return await self.fetch_all_async(list_of_params)
+        return await self.fetch_and_store_all_async(list_of_params)
     
     def get_list_of_params(self):
         all_keys = self._related_collection.distinct(self._related_col_key_name)

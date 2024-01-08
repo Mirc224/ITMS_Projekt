@@ -12,8 +12,4 @@ class ProjektyVRealizaciiDetailDataResolver(DataDetailResolverBase):
     def __init__(self, projektyVRealizaciiDetail_collection: Collection, projektyVRealizacii_collection: Collection, **kwargs):
         url = 'https://opendata.itms2014.sk/v2/projekty/vrealizacii/{projektId}'
         super().__init__(projektyVRealizaciiDetail_collection, url, projektyVRealizacii_collection, "id", 'projektId')
-
-    async def get_all_remote_data_async(self):
-        list_of_params = self.get_list_of_params()
-        return await self.fetch_all_async(list_of_params, 2000)
-    
+        self._parallel_requests = 2000

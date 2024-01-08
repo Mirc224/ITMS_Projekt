@@ -7,6 +7,7 @@ from data_resolvers.aktivita_data_reslover import AktivitaDataResolver, Aktivita
 from data_resolvers.projektyVRealizacii_data_resolver import ProjektyVRealizaciiDataResolver, ProjektyVRealizaciiDetailDataResolver
 from data_resolvers.projektyUkoncene_data_resolver import ProjektyUkonceneDataResolver, ProjektyUkonceneDetailDataResolver
 from data_resolvers.zop_predlozene_data_resolver import ZopPredlozeneDataResolver, ZopPredlozeneDetailDataResolver
+from data_resolvers.zop_uhradene_data_resolver import ZopUhradeneDataResolver, ZopUhradeneDetailDataResolver
 from time import perf_counter
 
 
@@ -29,7 +30,9 @@ async def main():
         'projektyVRealizacii_collection',
         'projektyVRealizaciiDetail_collection',
         'zopPredlozene_collection',
-        'zopPredlozeneDetail_collection'
+        'zopPredlozeneDetail_collection',
+        'zopUhradene_collection',
+        'zopUhradeneDetail_collection'
     ]
 
     db_collections = {col_name:db.get_collection(col_name) for col_name in collection_names}
@@ -42,13 +45,15 @@ async def main():
         PohladavkovyDokladDataResolver(**db_collections),
         PohladavkovyDokladDetailDataResolver(**db_collections),
         AktivitaDataResolver(**db_collections),
-        # AktivitaDetailDataResolver(**db_collections),
+        # # AktivitaDetailDataResolver(**db_collections),
         ProjektyVRealizaciiDataResolver(**db_collections),
         ProjektyVRealizaciiDetailDataResolver(**db_collections),
         ProjektyUkonceneDataResolver(**db_collections),
         ProjektyUkonceneDetailDataResolver(**db_collections),
         ZopPredlozeneDataResolver(**db_collections),
         ZopPredlozeneDetailDataResolver(**db_collections),
+        ZopUhradeneDataResolver(**db_collections),
+        # ZopUhradeneDetailDataResolver(**db_collections) # trvá 70 minút
     ]
 
     await data_resolving_pipeline[-1].resolve_data()
