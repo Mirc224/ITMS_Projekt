@@ -8,7 +8,6 @@ class ZmluvyVODataResolver(DataDetailResolverBase):
         url = 'https://opendata.itms2014.sk/v2/verejneObstaravania/{verejneObstaravanieId}/zmluvyVerejneObstaravanie'
         self._voId_field_name = 'verejneObstaravanieId'
         super().__init__(zmluvyVO_collection, url, verejneObstaravania_collection, "id", self._voId_field_name)
-        self._verejneObstravania_collection = verejneObstaravania_collection
         self._parallel_requests = 2500
     
     def transform_fetched_data(self, fetched_data, verejneObstaravanieId:int, **params:dict):

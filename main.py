@@ -6,21 +6,29 @@ from data_resolvers.pohladavkovyDoklad_data_reslover import PohladavkovyDokladDa
 from data_resolvers.aktivita_data_reslover import AktivitaDataResolver, AktivitaDetailDataResolver
 from data_resolvers.projektyVRealizacii_data_resolver import ProjektyVRealizaciiDataResolver, ProjektyVRealizaciiDetailDataResolver
 from data_resolvers.projektyUkoncene_data_resolver import ProjektyUkonceneDataResolver, ProjektyUkonceneDetailDataResolver
-from data_resolvers.zop_predlozene_data_resolver import ZopPredlozeneDataResolver, ZopPredlozeneDetailDataResolver
-from data_resolvers.zop_uhradene_data_resolver import ZopUhradeneDataResolver, ZopUhradeneDetailDataResolver
-from data_resolvers.zop_zamietnute_data_resolver import ZopZamietnuteDataResolver, ZopZamietnuteDetailDataResolver
-from data_resolvers.zonfp_prijate_data_resolver import ZonfpPrijateDataResolver, ZonfpPrijateDetailDataResolver
-from data_resolvers.zonfp_schvalene_data_resolver import ZonfpSchvaleneDataResolver, ZonfpSchvaleneDetailDataResolver
-from data_resolvers.zonfp_zamietnute_data_resolver import ZonfpZamietnuteDataResolver, ZonfpZamietnuteDetailDataResolver
-from data_resolvers.vyzvy_planovane_data_resolver import VyzvyPlanovaneDataResolver, VyzvyPlanovaneDetailDataResolver
-from data_resolvers.vyzvy_vyhlasene_data_resolver import VyzvyVyhlaseneDataResolver, VyzvyVyhlaseneDetailDataResolver
+from data_resolvers.zopPredlozene_data_resolver import ZopPredlozeneDataResolver, ZopPredlozeneDetailDataResolver
+from data_resolvers.zopUhradene_data_resolver import ZopUhradeneDataResolver, ZopUhradeneDetailDataResolver
+from data_resolvers.zopZamietnute_data_resolver import ZopZamietnuteDataResolver, ZopZamietnuteDetailDataResolver
+from data_resolvers.zonfpPrijate_data_resolver import ZonfpPrijateDataResolver, ZonfpPrijateDetailDataResolver
+from data_resolvers.zonfpSchvalene_data_resolver import ZonfpSchvaleneDataResolver, ZonfpSchvaleneDetailDataResolver
+from data_resolvers.zonfpZamietnute_data_resolver import ZonfpZamietnuteDataResolver, ZonfpZamietnuteDetailDataResolver
+from data_resolvers.vyzvyPlanovane_data_resolver import VyzvyPlanovaneDataResolver, VyzvyPlanovaneDetailDataResolver
+from data_resolvers.vyzvyVyhlasene_data_resolver import VyzvyVyhlaseneDataResolver, VyzvyVyhlaseneDetailDataResolver
 from data_resolvers.verejneObstaravania_data_resolver import VerejneObstaravaniaDataResolver, VerejneObstaravaniaDetailDataResolver
 from data_resolvers.zmluvyVo_data_resolver import ZmluvyVODataResolver, ZmluvyVODetailDataResolver
 from data_resolvers.projektovyUkazovatel_data_resolver import ProjektovyUkazovatelDataResolver, ProjektovyUkazovatelDetailDataResolver
-from time import perf_counter
+from data_resolvers.polozkaRozpoctu_data_resolver import PolozkaRozpoctuDetailDataResolver
+from data_resolvers.intenzitaDetail_data_resolver import IntenzitaDetailDataResolver
+from data_resolvers.uctovneDoklady_data_resolver import UctovneDokladyDataResolver, UctovneDokladyDetailDataResolver
+from data_resolvers.operacneProgramy_data_resolver import OperacneProgramyDataResolver, OperacneProgramyDetailDataResolver
+from data_resolvers.typyAktivit_data_resolver import TypyAktivitDataResolver, TypyAktivitDetailDataResolver
+from data_resolvers.prioritneOsi_data_resolver import PrioritneOsiDataResolver, PrioritneOsiDetailDataResolver
+from data_resolvers.konkretneCiele_data_resolver import KonkretneCieleDataResolver, KonkretneCieleDetailDataResolver
+import logging
 
 
 async def main():
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s", datefmt='%Y-%m-%d %H:%M:%S')
     connection = MongoDBConnection('./appsettings.json')
     client = connection.client
     itms_db_name = 'itmsDB'
@@ -60,6 +68,18 @@ async def main():
         'zmluvyVODetail_collection',
         'projektovyUkazovatel_collection',
         'projektovyUkazovatelDetail_collection',
+        'polozkaRozpoctuDetail_collection',
+        'intenzitaDetail_collection',
+        'uctovneDoklady_collection',
+        'uctovneDokladyDetail_collection',
+        'operacneProgramy_collection',
+        'operacneProgramyDetail_collection',
+        'typyAktivit_collection',
+        'typyAktivitDetail_collection',
+        'prioritneOsi_collection',
+        'prioritneOsiDetail_collection',
+        'konkretneCiele_collection',
+        'konkretneCieleDetail_collection',
     ]
 
     db_collections = {col_name:db.get_collection(col_name) for col_name in collection_names}
@@ -80,7 +100,7 @@ async def main():
         ZopPredlozeneDataResolver(**db_collections),
         ZopPredlozeneDetailDataResolver(**db_collections),
         ZopUhradeneDataResolver(**db_collections),
-        # ZopUhradeneDetailDataResolver(**db_collections), # trvá 70 minút
+        ZopUhradeneDetailDataResolver(**db_collections), # trvá 70 minút
         ZopZamietnuteDataResolver(**db_collections),
         ZopZamietnuteDetailDataResolver(**db_collections),
         ZonfpPrijateDataResolver(**db_collections),
@@ -99,10 +119,23 @@ async def main():
         ZmluvyVODetailDataResolver(**db_collections),
         ProjektovyUkazovatelDataResolver(**db_collections),
         # ProjektovyUkazovatelDetailDataResolver(**db_collections), # zbyotčné, nepridáva nové fieldy
-        
+        PolozkaRozpoctuDetailDataResolver(**db_collections),
+        IntenzitaDetailDataResolver(**db_collections),
+        UctovneDokladyDataResolver(**db_collections),
+        UctovneDokladyDetailDataResolver(**db_collections),
+        OperacneProgramyDataResolver(**db_collections),
+        OperacneProgramyDetailDataResolver(**db_collections),
+        TypyAktivitDataResolver(**db_collections),
+        TypyAktivitDetailDataResolver(**db_collections),
+        PrioritneOsiDataResolver(**db_collections),
+        PrioritneOsiDetailDataResolver(**db_collections),
+        KonkretneCieleDataResolver(**db_collections),
+        KonkretneCieleDetailDataResolver(**db_collections)
     ]
 
     await data_resolving_pipeline[-1].resolve_data()
+    # for data_resolver in data_resolving_pipeline[-3:]:
+    #     await data_resolver.resolve_data()
 
 if __name__ == '__main__':
     # start = perf_counter()

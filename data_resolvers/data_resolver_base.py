@@ -5,6 +5,7 @@ from pymongo.collection import Collection
 from abc import ABC, abstractmethod
 from itertools import batched
 from time import perf_counter
+import logging
 
 class DataResolverBase(ABC):
     def __init__(self, main_collection: Collection, remote_url:str):
@@ -25,7 +26,7 @@ class DataResolverBase(ABC):
         await self.get_and_store_all_remote_data_async()
 
     async def fetch_and_store_all_async(self, list_of_params:list[dict]):
-        print(f'{self._main_collection.name} - Ziskavanie dát...')
+        logging.info(f"{self._main_collection.name} - Získavanie dát...")
         start = perf_counter()
         batch_size = self._parallel_requests if self._parallel_requests > 0 else len(list_of_params)
         
@@ -39,12 +40,15 @@ class DataResolverBase(ABC):
             data_to_insert = self.transform_data_to_insert(batch_data)
             self.insert_data(data_to_insert)
         stop = perf_counter()
-        print(f'{self._main_collection.name} - Ziskavanie dát trvalo:', stop - start)
+        logging.info(f'{self._main_collection.name} - Ziskavanie dát trvalo: {stop - start}')
 
     async def fetch_async(self, s:ClientSession, params:dict):
         results = []
         while True:
             async with s.get(self._remote_url_template.format(**params)) as r:
+                if r.status == 404:
+                    logging.warning(f'NOT_FOUND: {r.url}' )
+                    return results
                 if r.status != 200:
                     r.raise_for_status()
                 fetched_data =  await r.json()

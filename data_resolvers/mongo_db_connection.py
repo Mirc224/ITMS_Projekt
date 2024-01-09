@@ -1,6 +1,8 @@
 import json
 from pymongo import MongoClient
 from pymongo.errors import ServerSelectionTimeoutError, OperationFailure
+import logging
+
 REQUIRED_FIELDS = [
         "DB_USER",
         "DB_PASSWORD",
@@ -43,25 +45,28 @@ class MongoDBConnection:
         # db_uri=f"mongodb://{db_user}:{db_password}@{host}:{port}/{database}?authSource={auth_source}&serverSelectionTimeoutMS={server_connection_timeout}"
         db_uri=f"mongodb://{user_credentials}{host}:{port}/{database}?authSource={auth_source}&serverSelectionTimeoutMS={server_connection_timeout}"
         client = MongoClient(db_uri)
-        print("Pripájanie k databáze...")
+        logging.info("Pripájanie k databáze...")
         msg = None
+        hint = ''
         try:
             client.list_database_names()
         except ServerSelectionTimeoutError as e:
-            print("Nepodarilo sa pripojiť k databáze, skontrolujte HOST a PORT!")
+            hint = "Nepodarilo sa pripojiť k databáze, skontrolujte HOST a PORT!"
             msg=e
         except OperationFailure as e:
-            print("Nepodarilo sa autentifikovať voči databáze, skontrolujte USERNAME a PASSWORD!")
+            hint = "Nepodarilo sa autentifikovať voči databáze, skontrolujte USERNAME a PASSWORD!"
             msg=e
         except Exception as e:
-            print("Nepodarilo sa pripojiť k databáze!")
+            hint = "Nepodarilo sa pripojiť k databáze!"
             msg=e
         finally:
             if msg is not None:
-                print(msg)
-                print("Ukončujem vykonávanie!")
+                logging.error(msg)
+                if hint:
+                    logging.warn(hint)
+                logging.info("Ukončujem vykonávanie!")
                 exit()
-            print("Pripojenie k databáze prebehlo úspešne!")
+            logging.info("Pripojenie k databáze prebehlo úspešne!")
         return client
     
     @property
