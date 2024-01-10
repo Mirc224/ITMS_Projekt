@@ -84,12 +84,13 @@ class DataResolverWithMinIdBase(DataResolverBase):
     def __init__(self, main_collection: Collection, remote_url: str):
         assert 'minId={minId}' in remote_url, f"Missing minId query param in route {remote_url}!"
         super().__init__(main_collection, remote_url)
+        self._min_id_field_name = "id"
 
     def perform_next_fetch(self, fetched_data):
         return True if fetched_data else False
     
     def get_updated_params(self, fetched_data, params:dict)-> dict:
-        min_id = max(fetched_data, key=lambda item: item["id"])['id']
+        min_id = max(fetched_data, key=lambda item: item[self._min_id_field_name])[self._min_id_field_name]
         params['minId'] = min_id
         return params
     

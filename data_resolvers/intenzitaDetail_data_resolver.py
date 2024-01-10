@@ -12,9 +12,9 @@ class IntenzitaDetailDataResolver(DataDetailResolverBase):
             **kwargs):
         url = 'https://opendata.itms2014.sk/v2/intenzita/{intenzitaId}'
         super().__init__(intenzitaDetail_collection, url, None, None, 'intenzitaId')
-        self._polozkaRozpoctuDetail_collection = polozkaRozpoctuDetail_collection
-        self._projektyVRealizaciiDetail_collection = projektyVRealizaciiDetail_collection
         self._projektyUkonceneDetail_collection = projektyUkonceneDetail_collection
+        self._projektyVRealizaciiDetail_collection = projektyVRealizaciiDetail_collection
+        self._polozkaRozpoctuDetail_collection = polozkaRozpoctuDetail_collection
         self._parallel_requests = 3000
 
     async def get_and_store_all_remote_data_async(self):

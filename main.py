@@ -24,8 +24,10 @@ from data_resolvers.operacneProgramy_data_resolver import OperacneProgramyDataRe
 from data_resolvers.typyAktivit_data_resolver import TypyAktivitDataResolver, TypyAktivitDetailDataResolver
 from data_resolvers.prioritneOsi_data_resolver import PrioritneOsiDataResolver, PrioritneOsiDetailDataResolver
 from data_resolvers.konkretneCiele_data_resolver import KonkretneCieleDataResolver, KonkretneCieleDetailDataResolver
+from data_resolvers.financnePlany_data_reslover import FinancnePlanyDataResolver
 import logging
-
+import json
+import re
 
 async def main():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s", datefmt='%Y-%m-%d %H:%M:%S')
@@ -80,6 +82,7 @@ async def main():
         'prioritneOsiDetail_collection',
         'konkretneCiele_collection',
         'konkretneCieleDetail_collection',
+        'financnePlany_collection',
     ]
 
     db_collections = {col_name:db.get_collection(col_name) for col_name in collection_names}
@@ -130,12 +133,25 @@ async def main():
         PrioritneOsiDataResolver(**db_collections),
         PrioritneOsiDetailDataResolver(**db_collections),
         KonkretneCieleDataResolver(**db_collections),
-        KonkretneCieleDetailDataResolver(**db_collections)
+        KonkretneCieleDetailDataResolver(**db_collections),
+        FinancnePlanyDataResolver(**db_collections),
     ]
 
-    await data_resolving_pipeline[-1].resolve_data()
+    # await data_resolving_pipeline[-1].resolve_data()
     # for data_resolver in data_resolving_pipeline[-3:]:
     #     await data_resolver.resolve_data()
+
+    # pattern = r'/v2/polozkaRozpoctu'
+    # for key, collection in db_collections.items():
+    #     results = list(collection.find({}, {"_id":0}).limit(1000))
+    #     if re.search(pattern, json.dumps(results)):
+    #         print(key, 'obsahuje', pattern)
+    # create indexes for all
+    # tmp = [{
+    #     "href" : "/v2/subjekty/123"
+    # }]
+    
+        
 
 if __name__ == '__main__':
     # start = perf_counter()
