@@ -8,11 +8,10 @@ class FinancnePlanyDataResolver(DataResolverWithMinIdBase):
         super().__init__(financnePlany_collection, url)
         self._prioritneOsi_collection = prioritneOsi_collection
         self._min_id_field_name = 'ID'
-
-    async def get_and_store_all_remote_data_async(self):
-        prioritnaOsId_field_name = 'prioritnaOsId'
-        all_opId = self._prioritneOsi_collection.distinct("id")
-        list_of_params = []
-        for prioritnaOsId in all_opId:
-            list_of_params.append({prioritnaOsId_field_name: prioritnaOsId, 'minId':0})
-        return await self.fetch_and_store_all_async(list_of_params)
+        self._prioritnaOs_field_name = 'prioritnaOsId'
+    
+    def get_all_keys(self) -> set:
+        return self._prioritneOsi_collection.distinct("id")
+    
+    def get_params_based_on_key(self, key) -> dict:
+        return {self._prioritnaOs_field_name: key }

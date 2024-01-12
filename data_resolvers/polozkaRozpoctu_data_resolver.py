@@ -21,19 +21,13 @@ class PolozkaRozpoctuDetailDataResolver(DataDetailResolverBase):
         self._zopZamietnuteDetail_collection = zopZamietnuteDetail_collection
         self._parallel_requests = 100
 
-    async def get_and_store_all_remote_data_async(self):
+    def get_all_keys(self):
         all_polozkaRozpoctuId = self.get_polozky_rozpoctu_zop(self._zopPredlozeneDetail_collection)
         all_polozkaRozpoctuId |= self.get_polozky_rozpoctu_zop(self._zopUhradeneDetail_collection)
         all_polozkaRozpoctuId |= self.get_polozky_rozpoctu_zop(self._zopZamietnuteDetail_collection)
         all_polozkaRozpoctuId |= self.get_polozky_rozpoctu_projekt(self._projektyUkonceneDetail_collection)
         all_polozkaRozpoctuId |= self.get_polozky_rozpoctu_projekt(self._projektyVRealizaciiDetail_collection)
-        list_of_params = []
-        for key in all_polozkaRozpoctuId:
-            list_of_params.append(
-                {
-                    self._route_param_name: key
-                })
-        return await self.fetch_and_store_all_async(list_of_params)
+        return all_polozkaRozpoctuId
 
     
     def get_polozky_rozpoctu_zop(self, collection:Collection) -> set[dict]:

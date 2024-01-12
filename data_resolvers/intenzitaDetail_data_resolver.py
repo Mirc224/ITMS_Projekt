@@ -16,19 +16,12 @@ class IntenzitaDetailDataResolver(DataDetailResolverBase):
         self._projektyVRealizaciiDetail_collection = projektyVRealizaciiDetail_collection
         self._polozkaRozpoctuDetail_collection = polozkaRozpoctuDetail_collection
         self._parallel_requests = 3000
-
-    async def get_and_store_all_remote_data_async(self):
+    
+    def get_all_keys(self) -> set:
         all_intenzitaId = self.get_intenzitaId_from_projekt(self._projektyVRealizaciiDetail_collection)
         all_intenzitaId |= self.get_intenzitaId_from_projekt(self._projektyUkonceneDetail_collection)
         all_intenzitaId |= self.get_intenzitaId_from_polozkaRozpoctu(self._polozkaRozpoctuDetail_collection)
-        list_of_params = []
-        for key in all_intenzitaId:
-            list_of_params.append(
-                {
-                    self._route_param_name: key
-                })
-        return await self.fetch_and_store_all_async(list_of_params)
-
+        return all_intenzitaId
     
     def get_intenzitaId_from_projekt(self, collection:Collection) -> set[dict]:
         all_polozkyRozpoctuId_in_collection = collection.aggregate([

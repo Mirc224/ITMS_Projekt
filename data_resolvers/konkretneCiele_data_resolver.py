@@ -17,6 +17,7 @@ class KonkretneCieleDataResolver(DataResolverWithMinIdBase):
                 **kwargs):
         url = 'https://opendata.itms2014.sk/v2/prioritnaOs/{poId}/konkretneCiele?minId={minId}'
         super().__init__(konkretneCiele_collection, url)
+        self._poId_field_name = 'poId'
         self._nezrovnalostDetail_collection = nezrovnalostDetail_collection
         self._pohladavkovyDoklad_collection = pohladavkovyDoklad_collection
         self._projektyUkonceneDetail_collection = projektyUkonceneDetail_collection
@@ -26,15 +27,12 @@ class KonkretneCieleDataResolver(DataResolverWithMinIdBase):
         self._zonfpZamietnuteDetail_collection = zonfpZamietnuteDetail_collection
         self._vyzvyPlanovane_collection = vyzvyPlanovane_collection
         self._vyzvyVyhlasene_collection = vyzvyVyhlasene_collection
-
-
-    async def get_and_store_all_remote_data_async(self):
-        poId_field_name = 'poId'
-        all_poId = self._prioritneOsi_collection.distinct("id")
-        list_of_params = []
-        for poId in all_poId:
-            list_of_params.append({poId_field_name: poId, 'minId':0})
-        return await self.fetch_and_store_all_async(list_of_params)
+    
+    def  get_all_keys(self) -> set:
+        return self._prioritneOsi_collection.distinct("id")
+    
+    def get_params_based_on_key(self, key) -> dict:
+        return {self._poId_field_name : key}
 
 # https://opendata.itms2014.sk/v2/konkretnyCiel/{kcId}
 class KonkretneCieleDetailDataResolver(DataDetailResolverBase):

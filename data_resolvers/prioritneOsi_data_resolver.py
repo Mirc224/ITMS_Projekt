@@ -7,14 +7,13 @@ class PrioritneOsiDataResolver(DataResolverWithMinIdBase):
         url = 'https://opendata.itms2014.sk/v2/operacneProgramy/{opId}/prioritneOsi?minId={minId}'
         super().__init__(prioritneOsi_collection, url)
         self._operacneProgramy_collection = operacneProgramy_collection
-
-    async def get_and_store_all_remote_data_async(self):
-        opId_field_name = 'opId'
-        all_opId = self._operacneProgramy_collection.distinct("id")
-        list_of_params = []
-        for opId in all_opId:
-            list_of_params.append({opId_field_name: opId, 'minId':0})
-        return await self.fetch_and_store_all_async(list_of_params)
+        self._opId_field_name = 'opId'
+    
+    def get_all_keys(self) -> set:
+        return self._operacneProgramy_collection.distinct("id")
+    
+    def get_params_based_on_key(self, key) -> dict:
+        return { self._opId_field_name : key }
 
 # https://opendata.itms2014.sk/v2/prioritnaOs/{poId}
 class PrioritneOsiDetailDataResolver(DataDetailResolverBase):

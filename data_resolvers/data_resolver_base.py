@@ -30,6 +30,8 @@ class DataResolverBase(ABC):
         start = perf_counter()
         batch_size = self._parallel_requests if self._parallel_requests > 0 else len(list_of_params)
         
+        completed_requests = 0
+        total_requests = len(list_of_params)
         for batch_of_params in batched(list_of_params, batch_size):
             tasks = []
             async with aiohttp.ClientSession() as session:
@@ -39,6 +41,9 @@ class DataResolverBase(ABC):
                 batch_data = await asyncio.gather(*tasks)
             data_to_insert = self.transform_data_to_insert(batch_data)
             self.insert_data(data_to_insert)
+
+            completed_requests += len(batch_of_params)
+            logging.info(f"{self._main_collection.name} - Spracovaných je {((completed_requests / total_requests)*100):.2f}%")
         stop = perf_counter()
         logging.info(f'{self._main_collection.name} - Ziskavanie dát trvalo: {stop - start}')
 
@@ -59,9 +64,24 @@ class DataResolverBase(ABC):
                 params = self.get_updated_params(fetched_data, params)
         return results
     
-    @abstractmethod
     async def get_and_store_all_remote_data_async(self):
-        pass
+        list_of_params = self.get_list_of_params()
+        return await self.fetch_and_store_all_async(list_of_params)
+    
+    def get_list_of_params(self):
+        all_keys = self.get_all_keys()
+        list_of_params = []
+        base_params_dict = self.get_base_params_dict()
+        for key in all_keys:
+            list_of_params.append(
+                base_params_dict | self.get_params_based_on_key(key))
+        return list_of_params
+    
+    def get_all_keys(self) -> set:
+        return set([None])
+    
+    def get_params_based_on_key(self, key) -> dict:
+        return {}
     
     def transform_data_to_insert(self, all_data)-> list[dict]:
         result = []
@@ -76,9 +96,11 @@ class DataResolverBase(ABC):
     def perform_next_fetch(self, fetched_data)->bool:
         pass
 
-    def get_updated_params(self, fetched_data, params:dict)-> dict:
+    def get_updated_params(self, fetched_data, params:dict) -> dict:
         return params
     
+    def get_base_params_dict(self) -> dict:
+        return {}
 
 class DataResolverWithMinIdBase(DataResolverBase):
     def __init__(self, main_collection: Collection, remote_url: str):
@@ -94,9 +116,8 @@ class DataResolverWithMinIdBase(DataResolverBase):
         params['minId'] = min_id
         return params
     
-    async def get_and_store_all_remote_data_async(self):
-        return await self.fetch_and_store_all_async([{ "minId": 0 }])
-    
+    def get_base_params_dict(self) -> dict:
+        return  {"minId": 0 }
 
 class DataDetailResolverBase(DataResolverBase):
     def __init__(
@@ -116,18 +137,14 @@ class DataDetailResolverBase(DataResolverBase):
         list_of_params = self.get_list_of_params()
         return await self.fetch_and_store_all_async(list_of_params)
     
-    def get_list_of_params(self):
-        all_keys = self._related_collection.distinct(self._related_col_key_name)
-        list_of_params = []
-        for key in all_keys:
-            list_of_params.append(
-                {
-                    self._route_param_name: key
-                })
-        return list_of_params
+    def get_all_keys(self)->set:
+        return self._related_collection.distinct(self._related_col_key_name)
     
     def perform_next_fetch(self, fetched_data):
         return False
     
     def transform_fetched_data(self, fetched_data, **params:dict):
         return [fetched_data]
+    
+    def get_params_based_on_key(self, key) -> dict:
+        return { self._route_param_name: key }

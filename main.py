@@ -25,9 +25,8 @@ from data_resolvers.typyAktivit_data_resolver import TypyAktivitDataResolver, Ty
 from data_resolvers.prioritneOsi_data_resolver import PrioritneOsiDataResolver, PrioritneOsiDetailDataResolver
 from data_resolvers.konkretneCiele_data_resolver import KonkretneCieleDataResolver, KonkretneCieleDetailDataResolver
 from data_resolvers.financnePlany_data_reslover import FinancnePlanyDataResolver
+from data_resolvers.dodavatelia_data_resolver import DodavateliaDataResolver
 import logging
-import json
-import re
 
 async def main():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s", datefmt='%Y-%m-%d %H:%M:%S')
@@ -83,6 +82,7 @@ async def main():
         'konkretneCiele_collection',
         'konkretneCieleDetail_collection',
         'financnePlany_collection',
+        'dodavatelia_collection',
     ]
 
     db_collections = {col_name:db.get_collection(col_name) for col_name in collection_names}
@@ -135,15 +135,21 @@ async def main():
         KonkretneCieleDataResolver(**db_collections),
         KonkretneCieleDetailDataResolver(**db_collections),
         FinancnePlanyDataResolver(**db_collections),
+
+        DodavateliaDataResolver(**db_collections),
     ]
 
-    # await data_resolving_pipeline[-1].resolve_data()
+    await data_resolving_pipeline[-1].resolve_data()
+    # tmp1 = [{"a":1, "b":2}, {"c":1, "d":2}]
+    # tmp2 = [{"a":1, "b":2}, {"c":1, "d":2}]
+    # if tmp1 == tmp2:
+    #     print('rovnake')
     # for data_resolver in data_resolving_pipeline[-3:]:
     #     await data_resolver.resolve_data()
 
-    # pattern = r'/v2/polozkaRozpoctu'
+    # pattern = r'/v2/subjekty/'
     # for key, collection in db_collections.items():
-    #     results = list(collection.find({}, {"_id":0}).limit(1000))
+    #     results = list(collection.find({}, {"_id":0}).limit(5000))
     #     if re.search(pattern, json.dumps(results)):
     #         print(key, 'obsahuje', pattern)
     # create indexes for all
