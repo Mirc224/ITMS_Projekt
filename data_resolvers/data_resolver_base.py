@@ -5,6 +5,7 @@ from pymongo.collection import Collection
 from abc import ABC, abstractmethod
 from itertools import batched
 from time import perf_counter
+from pymongo.command_cursor import CommandCursor
 import logging
 
 class DataResolverBase(ABC):
@@ -148,3 +149,28 @@ class DataDetailResolverBase(DataResolverBase):
     
     def get_params_based_on_key(self, key) -> dict:
         return { self._route_param_name: key }
+    
+class DataDetailResolverWithAggregationsBase(DataDetailResolverBase):
+    def __init__(self, 
+                 main_collection: Collection, 
+                 remote_url: str, 
+                 route_param_name: str,
+                 related_collections: list[Collection]=None,
+                 aggregations_by_collection_name: dict[str, list]=None):
+        super().__init__(main_collection, remote_url, None, None, route_param_name)
+        self._related_collections = related_collections
+        self._aggregations_by_collection_name = aggregations_by_collection_name
+
+    def get_all_keys(self):
+        all_ids = set()
+        for collection in self._related_collections:
+            all_ids |= self.get_key_from_collection(collection)
+        return all_ids
+    
+    def get_key_from_collection(self, collection:Collection) -> set[dict]:
+        aggregation = self._aggregations_by_collection_name[collection.name]
+        result = collection.aggregate(aggregation)
+        return self.get_route_param_set_from_aggregation_result(result)
+
+    def get_route_param_set_from_aggregation_result(self, result: CommandCursor)->set:
+        return set([item[self._route_param_name] for item in result if item])

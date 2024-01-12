@@ -1,8 +1,7 @@
 from pymongo.collection import Collection
-from data_resolvers.data_resolver_base import DataDetailResolverBase
-from pymongo.command_cursor import CommandCursor
+from data_resolvers.data_resolver_base import DataDetailResolverWithAggregationsBase
 
-class DodavateliaDataResolver(DataDetailResolverBase):
+class DodavateliaDataResolver(DataDetailResolverWithAggregationsBase):
     def __init__(
             self, 
             dodavatelia_collection: Collection,
@@ -11,31 +10,21 @@ class DodavateliaDataResolver(DataDetailResolverBase):
             zmluvyVODetail_collection: Collection,
             **kwargs):
         url = 'https://opendata.itms2014.sk/v2/dodavatelia/{dodavatelId}'
-        super().__init__(dodavatelia_collection, url, None, None, 'dodavatelId')
-
+        super().__init__(dodavatelia_collection, url, "dodavatelId")
+        
         self._related_collections = [
             uctovneDoklady_collection,
             verejneObstaravania_collection,
             zmluvyVODetail_collection
         ]
 
-        self._aggregations_by_type_name = {
+        self._aggregations_by_collection_name = {
             uctovneDoklady_collection.name: self.get_uctovneDoklady_aggregation(),
             verejneObstaravania_collection.name: self.get_verejneObstaravania_aggregation(),
             zmluvyVODetail_collection.name: self.get_zmluvyVO_aggregation()
         }
         self._parallel_requests = 1000
 
-    def get_all_keys(self):
-        all_ids = set()
-        for collection in self._related_collections:
-            all_ids |= self.get_key_from_collection(collection)
-        return all_ids
-    
-    def get_key_from_collection(self, collection:Collection) -> set[dict]:
-        aggregation = self._aggregations_by_type_name[collection.name]
-        result = collection.aggregate(aggregation)
-        return set([item[self._route_param_name] for item in result if item])
     
     def get_uctovneDoklady_aggregation(self):
         return [
@@ -119,6 +108,3 @@ class DodavateliaDataResolver(DataDetailResolverBase):
                 }
             }
         ]
-
-    
-

@@ -22,8 +22,8 @@ from data_resolvers.intenzitaDetail_data_resolver import IntenzitaDetailDataReso
 from data_resolvers.uctovneDoklady_data_resolver import UctovneDokladyDataResolver, UctovneDokladyDetailDataResolver
 from data_resolvers.operacneProgramy_data_resolver import OperacneProgramyDataResolver, OperacneProgramyDetailDataResolver
 from data_resolvers.typyAktivit_data_resolver import TypyAktivitDataResolver, TypyAktivitDetailDataResolver
-from data_resolvers.prioritneOsi_data_resolver import PrioritneOsiDataResolver, PrioritneOsiDetailDataResolver
-from data_resolvers.konkretneCiele_data_resolver import KonkretneCieleDataResolver, KonkretneCieleDetailDataResolver
+from data_resolvers.prioritneOsi_data_resolver import PrioritneOsiOPDataResolver, PrioritneOsiDetailDataResolver
+from data_resolvers.konkretneCiele_data_resolver import KonkretneCielePOsDataResolver, KonkretneCieleDetailDataResolver
 from data_resolvers.financnePlany_data_reslover import FinancnePlanyDataResolver
 from data_resolvers.dodavatelia_data_resolver import DodavateliaDataResolver
 import logging
@@ -77,9 +77,9 @@ async def main():
         'operacneProgramyDetail_collection',
         'typyAktivit_collection',
         'typyAktivitDetail_collection',
-        'prioritneOsi_collection',
+        'prioritneOsiOP_collection',
         'prioritneOsiDetail_collection',
-        'konkretneCiele_collection',
+        'konkretneCielePOs_collection',
         'konkretneCieleDetail_collection',
         'financnePlany_collection',
         'dodavatelia_collection',
@@ -130,35 +130,16 @@ async def main():
         OperacneProgramyDetailDataResolver(**db_collections),
         TypyAktivitDataResolver(**db_collections),
         TypyAktivitDetailDataResolver(**db_collections),
-        PrioritneOsiDataResolver(**db_collections),
+        PrioritneOsiOPDataResolver(**db_collections),
         PrioritneOsiDetailDataResolver(**db_collections),
-        KonkretneCieleDataResolver(**db_collections),
+        KonkretneCielePOsDataResolver(**db_collections),
         KonkretneCieleDetailDataResolver(**db_collections),
         FinancnePlanyDataResolver(**db_collections),
-
         DodavateliaDataResolver(**db_collections),
     ]
 
     await data_resolving_pipeline[-1].resolve_data()
-    # tmp1 = [{"a":1, "b":2}, {"c":1, "d":2}]
-    # tmp2 = [{"a":1, "b":2}, {"c":1, "d":2}]
-    # if tmp1 == tmp2:
-    #     print('rovnake')
-    # for data_resolver in data_resolving_pipeline[-3:]:
-    #     await data_resolver.resolve_data()
-
-    # pattern = r'/v2/subjekty/'
-    # for key, collection in db_collections.items():
-    #     results = list(collection.find({}, {"_id":0}).limit(5000))
-    #     if re.search(pattern, json.dumps(results)):
-    #         print(key, 'obsahuje', pattern)
-    # create indexes for all
-    # tmp = [{
-    #     "href" : "/v2/subjekty/123"
-    # }]
     
-        
-
 if __name__ == '__main__':
     # start = perf_counter()
     asyncio.run(main())

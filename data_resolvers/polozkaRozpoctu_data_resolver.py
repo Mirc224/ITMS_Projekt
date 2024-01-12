@@ -1,72 +1,62 @@
 from pymongo.collection import Collection
-from data_resolvers.data_resolver_base import DataDetailResolverBase
+from data_resolvers.data_resolver_base import DataDetailResolverWithAggregationsBase
 
 # https://opendata.itms2014.sk/v2/polozkaRozpoctu/{polozkaRozpoctuId}
-class PolozkaRozpoctuDetailDataResolver(DataDetailResolverBase):
+class PolozkaRozpoctuDetailDataResolver(DataDetailResolverWithAggregationsBase):
     def __init__(
             self, 
             polozkaRozpoctuDetail_collection: Collection, 
-            zopPredlozeneDetail_collection: Collection, 
-            zopUhradeneDetail_collection: Collection,
-            zopZamietnuteDetail_collection: Collection,
             projektyUkonceneDetail_collection: Collection,
             projektyVRealizaciiDetail_collection: Collection,
+            zopPredlozeneDetail_collection: Collection,
+            zopUhradeneDetail_collection: Collection,
+            zopZamietnuteDetail_collection: Collection,
             **kwargs):
         url = 'https://opendata.itms2014.sk/v2/polozkaRozpoctu/{polozkaRozpoctuId}'
-        super().__init__(polozkaRozpoctuDetail_collection, url, None, None, 'polozkaRozpoctuId')
-        self._projektyUkonceneDetail_collection = projektyUkonceneDetail_collection
-        self._projektyVRealizaciiDetail_collection = projektyVRealizaciiDetail_collection
-        self._zopPredlozeneDetail_collection = zopPredlozeneDetail_collection
-        self._zopUhradeneDetail_collection = zopUhradeneDetail_collection
-        self._zopZamietnuteDetail_collection = zopZamietnuteDetail_collection
+        super().__init__(polozkaRozpoctuDetail_collection, url, 'polozkaRozpoctuId')
+        
+        self._related_collections = [
+            projektyUkonceneDetail_collection,
+            projektyVRealizaciiDetail_collection,
+            zopPredlozeneDetail_collection,
+            zopUhradeneDetail_collection,
+            zopZamietnuteDetail_collection
+        ]
+
+        self._aggregations_by_collection_name  = {
+            projektyUkonceneDetail_collection.name: self.get_polozkaRozpoctuId_from_projekt_agg(),
+            projektyVRealizaciiDetail_collection.name: self.get_polozkaRozpoctuId_from_projekt_agg(),
+            zopPredlozeneDetail_collection.name: self.get_polozkaRozpoctuId_from_zop_agg(),
+            zopUhradeneDetail_collection.name: self.get_polozkaRozpoctuId_from_zop_agg(),
+            zopZamietnuteDetail_collection.name: self.get_polozkaRozpoctuId_from_zop_agg()
+        }
         self._parallel_requests = 100
-
-    def get_all_keys(self):
-        all_polozkaRozpoctuId = self.get_polozky_rozpoctu_zop(self._zopPredlozeneDetail_collection)
-        all_polozkaRozpoctuId |= self.get_polozky_rozpoctu_zop(self._zopUhradeneDetail_collection)
-        all_polozkaRozpoctuId |= self.get_polozky_rozpoctu_zop(self._zopZamietnuteDetail_collection)
-        all_polozkaRozpoctuId |= self.get_polozky_rozpoctu_projekt(self._projektyUkonceneDetail_collection)
-        all_polozkaRozpoctuId |= self.get_polozky_rozpoctu_projekt(self._projektyVRealizaciiDetail_collection)
-        return all_polozkaRozpoctuId
-
     
-    def get_polozky_rozpoctu_zop(self, collection:Collection) -> set[dict]:
-        all_polozkyRozpoctuId_in_collection = collection.aggregate([
+    def get_polozkaRozpoctuId_from_projekt_agg(self)->list[dict]:
+        return [
             {
                 '$unwind': {
-                    'path': '$predlozeneDeklarovaneVydavky', 
-                    'preserveNullAndEmptyArrays': False
-                }
-            }, {
-                '$addFields': {
-                    self._route_param_name: '$predlozeneDeklarovaneVydavky.polozkaRozpoctu.id'
+                    'path': '$polozkyRozpoctu'
                 }
             }, {
                 '$project': {
                     '_id': 0, 
-                    self._route_param_name : 1
-                }
-            }
-        ])
-        return set([item[self._route_param_name] for item in all_polozkyRozpoctuId_in_collection])
-    
-    def get_polozky_rozpoctu_projekt(self, collection:Collection) -> set[dict]:
-        all_polozkyRozpoctuId_in_collection = collection.aggregate([
-            {
-                '$unwind': {
-                    'path': '$polozkyRozpoctu', 
-                    'preserveNullAndEmptyArrays': False
-                }
-            }, {
-                '$addFields': {
                     self._route_param_name: '$polozkyRozpoctu.id'
                 }
+            }
+        ]
+    
+    def get_polozkaRozpoctuId_from_zop_agg(self)->list[dict]:
+        return [
+            {
+                '$unwind': {
+                    'path': '$predlozeneDeklarovaneVydavky'
+                }
             }, {
                 '$project': {
                     '_id': 0, 
-                    self._route_param_name: 1
+                    self._route_param_name: '$predlozeneDeklarovaneVydavky.polozkaRozpoctu.id'
                 }
             }
-        ])
-        return set([item[self._route_param_name] for item in all_polozkyRozpoctuId_in_collection])
+        ]
 
