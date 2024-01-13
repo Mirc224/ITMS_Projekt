@@ -71,7 +71,6 @@ class SubjektyDataResolver(DataDetailResolverWithAggregationsBase):
             zopUhradeneDetail_collection.name : self.get_zop_aggregation(),
             zopZamietnuteDetail_collection.name : self.get_zop_aggregation(),
         }
-        self._parallel_requests = 1000
 
     def get_nezrovnalost_aggregation(self) -> list[dict]:
         return [{

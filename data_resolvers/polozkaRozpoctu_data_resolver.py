@@ -30,7 +30,6 @@ class PolozkaRozpoctuDetailDataResolver(DataDetailResolverWithAggregationsBase):
             zopUhradeneDetail_collection.name: self.get_polozkaRozpoctuId_from_zop_agg(),
             zopZamietnuteDetail_collection.name: self.get_polozkaRozpoctuId_from_zop_agg()
         }
-        self._parallel_requests = 100
     
     def get_polozkaRozpoctuId_from_projekt_agg(self)->list[dict]:
         return [

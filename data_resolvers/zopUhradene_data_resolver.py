@@ -12,4 +12,3 @@ class ZopUhradeneDetailDataResolver(DataDetailResolverBase):
     def __init__(self, zopUhradeneDetail_collection: Collection, zopUhradene_collection: Collection, **kwargs):
         url = 'https://opendata.itms2014.sk/v2/zop/uhradene/{zopId}'
         super().__init__(zopUhradeneDetail_collection, url, zopUhradene_collection, "id", 'zopId')
-        self._parallel_requests = 2000

@@ -12,4 +12,3 @@ class ZonfpSchvaleneDetailDataResolver(DataDetailResolverBase):
     def __init__(self, zonfpSchvaleneDetail_collection: Collection, zonfpSchvalene_collection: Collection, **kwargs):
         url = 'https://opendata.itms2014.sk/v2/zonfp/prijate/{zonfpId}'
         super().__init__(zonfpSchvaleneDetail_collection, url, zonfpSchvalene_collection, "id", 'zonfpId')
-        self._parallel_requests = 2000

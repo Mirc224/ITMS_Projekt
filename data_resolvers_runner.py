@@ -40,7 +40,7 @@ class DataResolversRunner:
         self._config = self.__read_config_file(appsettings_path)
         
         connection = MongoDBConnection(self._config['database'])
-        self._db = connection.client.get_database("itmsDB")
+        self._db = connection.client.get_database(self._config['database']["DB_NAME"])
         
         self._collection_data_resolver_dict = self.__get_collection_data_resolver_dict()
 
@@ -95,12 +95,13 @@ class DataResolversRunner:
             ProjektyUkonceneDataResolver(**db_collections),
             ProjektyUkonceneDetailDataResolver(**db_collections),
             PolozkaRozpoctuDetailDataResolver(**db_collections),
-            PolozkaRozpoctuDetailDataResolver(**db_collections),
             IntenzitaDetailDataResolver(**db_collections),
-        ]   
+        ]
 
     def __get_collection_data_resolver_dict(self) -> dict[str, DataResolverBase]:
         all_resolvers = self.__get_collection_data_resolver_list()
+        self.__initialize_resolvers_parallel_requests(all_resolvers)
+
         collection_resolver_dict = {}
         for resolver in all_resolvers:
             resolver_parameters = list(inspect.signature(resolver.__init__).parameters.keys())
@@ -108,6 +109,17 @@ class DataResolversRunner:
             collection_resolver_dict[resolver_main_collection_name] = resolver
         
         return collection_resolver_dict
+    
+    def __initialize_resolvers_parallel_requests(self, resolvers:list[DataResolverBase]):
+        all_resolver_settings = dict(self._config['resolvers_settings'])
+        for resolver in resolvers:
+            resolver_settings = all_resolver_settings.get(type(resolver).__name__, None)
+            if not isinstance(resolver_settings, dict):
+                continue
+            parallel_requests = resolver_settings.get('parallelRequests', None)
+            
+            if parallel_requests is not None:
+                resolver.parallel_requests = parallel_requests
 
     def __get_db_collections(self) -> dict[Collection]:
         all_resolvers = [
@@ -168,6 +180,8 @@ class DataResolversRunner:
             list_of_collections_names.extend(resolver_parameters[1:-1])
         
         set_of_collection_names = set(list_of_collections_names)
+        for col_name in set_of_collection_names:
+            print(f'"{col_name}",')
         return {col_name:self._db.get_collection(col_name) for col_name in set_of_collection_names}
 
     def __read_config_file(self, config_path:str) -> dict:

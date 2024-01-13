@@ -12,4 +12,3 @@ class ZonfpZamietnuteDetailDataResolver(DataDetailResolverBase):
     def __init__(self, zonfpZamietnuteDetail_collection: Collection, zonfpZamietnute_collection: Collection, **kwargs):
         url = 'https://opendata.itms2014.sk/v2/zonfp/zamietnute/{zonfpId}'
         super().__init__(zonfpZamietnuteDetail_collection, url, zonfpZamietnute_collection, "id", 'zonfpId')
-        self._parallel_requests = 1250

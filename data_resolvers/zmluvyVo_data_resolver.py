@@ -8,7 +8,6 @@ class ZmluvyVODataResolver(DataDetailResolverBase):
         url = 'https://opendata.itms2014.sk/v2/verejneObstaravania/{verejneObstaravanieId}/zmluvyVerejneObstaravanie'
         self._voId_field_name = 'verejneObstaravanieId'
         super().__init__(zmluvyVO_collection, url, verejneObstaravania_collection, "id", self._voId_field_name)
-        self._parallel_requests = 2500
     
     def transform_fetched_data(self, fetched_data, verejneObstaravanieId:int, **params:dict):
         return [{self._voId_field_name : verejneObstaravanieId} | item for item in fetched_data]
@@ -18,4 +17,3 @@ class ZmluvyVODetailDataResolver(DataDetailResolverBase):
     def __init__(self, zmluvyVODetail_collection: Collection, zmluvyVO_collection: Collection, **kwargs):
         url = 'https://opendata.itms2014.sk/v2/zmluvaVerejneObstaravanie/{zmluvaId}'
         super().__init__(zmluvyVODetail_collection, url, zmluvyVO_collection, "id", 'zmluvaId')
-        self._parallel_requests = 250

@@ -8,7 +8,7 @@ REQUIRED_FIELDS = [
         "HOST",
         "PORT",
         "AUTH_SOURCE",
-        "DATABASE",
+        "DB_NAME",
         "SERVER_SELECTION_TIMEOUT_MS"]
 
 class MongoDBConnection:
@@ -27,7 +27,7 @@ class MongoDBConnection:
         host = self._config["HOST"]
         port = self._config["PORT"]
         auth_source = self._config["AUTH_SOURCE"]
-        database = self._config["DATABASE"]
+        database = self._config["DB_NAME"]
         server_connection_timeout = self._config["SERVER_SELECTION_TIMEOUT_MS"]
         user_credentials = ""
 

@@ -12,4 +12,3 @@ class ProjektyVRealizaciiDetailDataResolver(DataDetailResolverBase):
     def __init__(self, projektyVRealizaciiDetail_collection: Collection, projektyVRealizacii_collection: Collection, **kwargs):
         url = 'https://opendata.itms2014.sk/v2/projekty/vrealizacii/{projektId}'
         super().__init__(projektyVRealizaciiDetail_collection, url, projektyVRealizacii_collection, "id", 'projektId')
-        self._parallel_requests = 2000

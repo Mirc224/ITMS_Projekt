@@ -118,6 +118,14 @@ class DataResolverBase(ABC):
     
     def get_base_params_dict(self) -> dict:
         return {}
+    
+    @property
+    def parallel_requests(self) -> int:
+        return self._parallel_requests
+    
+    @parallel_requests.setter
+    def parallel_requests(self, value) -> int:
+        self._parallel_requests = value
 
 class DataResolverWithMinIdBase(DataResolverBase):
     def __init__(self, main_collection: Collection, remote_url: str):

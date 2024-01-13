@@ -24,7 +24,6 @@ class IntenzitaDetailDataResolver(DataDetailResolverWithAggregationsBase):
             projektyVRealizaciiDetail_collection.name: self.get_projekt_aggregation(),
             projektyUkonceneDetail_collection.name: self.get_projekt_aggregation()
         }
-        self._parallel_requests = 2500
     
     def get_projekt_aggregation(self) -> list[dict]:
         return [

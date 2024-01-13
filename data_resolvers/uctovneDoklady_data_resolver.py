@@ -12,4 +12,3 @@ class UctovneDokladyDetailDataResolver(DataDetailResolverBase):
     def __init__(self, uctovneDokladyDetail_collection: Collection, uctovneDoklady_collection: Collection, **kwargs):
         url = 'https://opendata.itms2014.sk/v2/uctovneDoklady/{dokladId}'
         super().__init__(uctovneDokladyDetail_collection, url, uctovneDoklady_collection, "id", 'dokladId')
-        self._parallel_requests = 2000
