@@ -23,7 +23,7 @@ class DodavateliaDataResolver(DataDetailResolverWithAggregationsBase):
             verejneObstaravania_collection.name: self.get_verejneObstaravania_aggregation(),
             zmluvyVODetail_collection.name: self.get_zmluvyVO_aggregation()
         }
-        self._parallel_requests = 1000
+        self._parallel_requests = 100
 
     
     def get_uctovneDoklady_aggregation(self):

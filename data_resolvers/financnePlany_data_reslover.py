@@ -15,3 +15,6 @@ class FinancnePlanyDataResolver(DataResolverWithMinIdBase):
     
     def get_params_based_on_key(self, key) -> dict:
         return {self._prioritnaOs_field_name: key }
+    
+    def check_related_collections(self):
+        self._check_if_collection_is_empty(self._prioritneOsiDetail_collection)

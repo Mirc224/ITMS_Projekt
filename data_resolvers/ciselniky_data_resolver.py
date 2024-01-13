@@ -1,5 +1,6 @@
 from pymongo.collection import Collection
 from data_resolvers.data_resolver_base import DataResolverBase, DataResolverWithMinIdBase
+import logging
 
 # https://opendata.itms2014.sk/v2/ciselniky
 class CiselnikyDataResolver(DataResolverBase):
@@ -26,3 +27,6 @@ class CiselnikyDetailDataResolver(DataResolverWithMinIdBase):
     
     def transform_fetched_data(self, fetched_data, ciselnikKod:str, **params:dict):
         return [{self._cislenikKod_field_name: ciselnikKod} | item for item in fetched_data]
+    
+    def check_related_collections(self):
+        self._check_if_collection_is_empty(self._ciselniky_collection)

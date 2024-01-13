@@ -1,4 +1,3 @@
-import json
 from pymongo import MongoClient
 from pymongo.errors import ServerSelectionTimeoutError, OperationFailure
 import logging
@@ -13,20 +12,14 @@ REQUIRED_FIELDS = [
         "SERVER_SELECTION_TIMEOUT_MS"]
 
 class MongoDBConnection:
-    def __init__(self, config_path:str="./appsettings.json"):
-        self._config = self.__read_config_file(config_path)
+    def __init__(self, database_config:dict):
+        self._config = database_config
         self.__check_config_values(self._config, REQUIRED_FIELDS)
         self._client = self.__make_connection()
     
     def __check_config_values(self, config:dict, required_fields:list[str]):
         for field in required_fields:
             assert field in config.keys() and config[field] is not None, f"Chýba konfiguračná hodnota {field}"
-
-    def __read_config_file(self, config_path:str) -> dict:
-        config = {}
-        with open(config_path, "r", encoding="utf8") as f:
-            config = json.load(f)
-        return config['database']
     
     def __make_connection(self) -> MongoClient:
         db_user = self._config["DB_USER"]

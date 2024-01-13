@@ -15,6 +15,9 @@ class PrioritneOsiOPDataResolver(DataResolverWithMinIdBase):
     def get_params_based_on_key(self, key) -> dict:
         return { self._opId_field_name : key }
 
+    def check_related_collections(self):
+        self._check_if_collection_is_empty(self._operacneProgramy_collection)
+
 # https://opendata.itms2014.sk/v2/prioritnaOs/{poId}
 class PrioritneOsiDetailDataResolver(DataDetailResolverWithAggregationsBase):
     def __init__(self, 

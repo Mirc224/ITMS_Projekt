@@ -23,10 +23,26 @@ class DataResolverBase(ABC):
         self._main_collection.insert_many(data)
     
     async def resolve_data(self):
+        self.check_related_collections()
         self.delete_local_data()
         await self.get_and_store_all_remote_data_async()
+    
+    def check_related_collections(self):
+        pass
+    
+    def _check_if_collection_is_empty(self, collection:Collection):
+        if collection.count_documents({}) != 0:
+            return
+        self._log_empty_related_collection_warning(collection.name)
+
+    def _log_empty_related_collection_warning(self, related_collection_name:str):
+        logging.warning(f"{self._main_collection.name} vyžaduje dáta z {related_collection_name}, ktorá je prázdna!")
 
     async def fetch_and_store_all_async(self, list_of_params:list[dict]):
+        if len(list_of_params) == 0:
+            logging.warning(f"{self._main_collection.name} - Nenašli sa žiadne dáta na získanie!")
+            return
+        
         logging.info(f"{self._main_collection.name} - Získavanie dát...")
         start = perf_counter()
         batch_size = self._parallel_requests if self._parallel_requests > 0 else len(list_of_params)
@@ -150,6 +166,11 @@ class DataDetailResolverBase(DataResolverBase):
     def get_params_based_on_key(self, key) -> dict:
         return { self._route_param_name: key }
     
+    def check_related_collections(self):
+        if self._related_collection is None:
+            return
+        self._check_if_collection_is_empty(self._related_collection)
+    
 class DataDetailResolverWithAggregationsBase(DataDetailResolverBase):
     def __init__(self, 
                  main_collection: Collection, 
@@ -160,6 +181,12 @@ class DataDetailResolverWithAggregationsBase(DataDetailResolverBase):
         super().__init__(main_collection, remote_url, None, None, route_param_name)
         self._related_collections = related_collections
         self._aggregations_by_collection_name = aggregations_by_collection_name
+
+    def check_related_collections(self):
+        if len(self._related_collections) == 0:
+            return
+        for collection in self._related_collections:
+            self._check_if_collection_is_empty(collection)
 
     def get_all_keys(self):
         all_ids = set()

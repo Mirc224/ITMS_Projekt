@@ -12,11 +12,14 @@ class KonkretneCielePOsDataResolver(DataResolverWithMinIdBase):
         self._poId_field_name = 'poId'
         self._prioritneOsi_collection = prioritneOsiDetail_collection
     
-    def  get_all_keys(self) -> set:
+    def get_all_keys(self) -> set:
         return self._prioritneOsi_collection.distinct("id")
     
     def get_params_based_on_key(self, key) -> dict:
         return {self._poId_field_name : key}
+    
+    def check_related_collections(self):
+        self._check_if_collection_is_empty(self._prioritneOsi_collection)
 
 # https://opendata.itms2014.sk/v2/konkretnyCiel/{kcId}
 class KonkretneCieleDetailDataResolver(DataDetailResolverWithAggregationsBase):
