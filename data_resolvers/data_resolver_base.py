@@ -6,13 +6,21 @@ from abc import ABC, abstractmethod
 from itertools import batched
 from time import perf_counter
 from pymongo.command_cursor import CommandCursor
+import math
 import logging
+
+SEMAPHORE = None
 
 class DataResolverBase(ABC):
     def __init__(self, main_collection: Collection, remote_url:str):
         self._main_collection = main_collection
         self._remote_url_template = remote_url
         self._parallel_requests = -1
+        self._completed_urls = 0
+        self._total_urls_to_complete = 0
+        self._parallel_requests = 50
+        self._batch_size = 500
+        self._semaphore = asyncio.Semaphore(self._parallel_requests)
 
     def delete_local_data(self):
         self._main_collection.delete_many({})
@@ -45,44 +53,51 @@ class DataResolverBase(ABC):
         
         logging.info(f"{self._main_collection.name} - Získavanie dát...")
         start = perf_counter()
-        batch_size = self._parallel_requests if self._parallel_requests > 0 else len(list_of_params)
-        
-        completed_requests = 0
-        total_requests = len(list_of_params)
-        for batch_of_params in batched(list_of_params, batch_size):
-            tasks = []
+
+        for batch_of_params in batched(list_of_params, self._batch_size):
             async with aiohttp.ClientSession() as session:
+                tasks = []
                 for params in batch_of_params:
                     task = asyncio.create_task(self.fetch_async(session, params))
                     tasks.append(task)
-                batch_data = await asyncio.gather(*tasks)
-            data_to_insert = self.transform_data_to_insert(batch_data)
-            self.insert_data(data_to_insert)
+                await asyncio.gather(*tasks)
 
-            completed_requests += len(batch_of_params)
-            logging.info(f"{self._main_collection.name} - Spracovaných je {((completed_requests / total_requests)*100):.2f}%")
         stop = perf_counter()
         logging.info(f'{self._main_collection.name} - Ziskavanie dát trvalo: {stop - start}')
 
+    def log_info_about_completion_status(self):
+        if self._total_urls_to_complete == 0:
+            return
+        if self._completed_urls % int(math.ceil(self._total_urls_to_complete / 100)) == 0:
+            logging.info(f"{self._main_collection.name} - Spracovaných je {((self._completed_urls / self._total_urls_to_complete)*100):.2f}%")
+
     async def fetch_async(self, s:ClientSession, params:dict):
-        results = []
-        while True:
-            async with s.get(self._remote_url_template.format(**params)) as r:
-                if r.status == 404:
-                    logging.warning(f'NOT_FOUND: {r.url}' )
-                    return results
-                if r.status != 200:
-                    r.raise_for_status()
-                fetched_data =  await r.json()
-                fetched_data = self.transform_fetched_data(fetched_data, **params)
-                results.extend(fetched_data)
-                if not self.perform_next_fetch(fetched_data):
-                    break
-                params = self.get_updated_params(fetched_data, params)
-        return results
+        async with self._semaphore:
+            results = []
+            while True:
+                async with s.get(self._remote_url_template.format(**params)) as r:
+                    if r.status == 404:
+                        logging.warning(f'NOT_FOUND: {r.url}' )
+                        return
+                    if r.status != 200:
+                        r.raise_for_status()
+                    fetched_data =  await r.json()
+                    fetched_data = self.transform_fetched_data(fetched_data, **params)
+                    results.extend(fetched_data)
+                    if not self.perform_next_fetch(fetched_data):
+                        break
+                    params = self.get_updated_params(fetched_data, params)
+        
+        if results:
+            self._main_collection.insert_many(results)
+        
+        self._completed_urls += 1
+        self.log_info_about_completion_status()
     
     async def get_and_store_all_remote_data_async(self):
         list_of_params = self.get_list_of_params()
+        self._completed_urls = 0
+        self._total_urls_to_complete = len(list_of_params)
         return await self.fetch_and_store_all_async(list_of_params)
     
     def get_list_of_params(self):
@@ -124,8 +139,21 @@ class DataResolverBase(ABC):
         return self._parallel_requests
     
     @parallel_requests.setter
-    def parallel_requests(self, value) -> int:
+    def parallel_requests(self, value: int):
+        if value < 1:
+            return
         self._parallel_requests = value
+        self._semaphore = asyncio.Semaphore(self._parallel_requests)
+
+    @property
+    def batch_size(self) -> int:
+        return self._batch_size
+    
+    @batch_size.setter
+    def batch_size(self, value: int):
+        if value < 1:
+            return
+        self._batch_size = value
 
 class DataResolverWithMinIdBase(DataResolverBase):
     def __init__(self, main_collection: Collection, remote_url: str):
@@ -157,10 +185,6 @@ class DataDetailResolverBase(DataResolverBase):
         self._related_collection = related_collection
         self._related_col_key_name = related_col_key_name
         self._route_param_name = route_param_name
-
-    async def get_and_store_all_remote_data_async(self):
-        list_of_params = self.get_list_of_params()
-        return await self.fetch_and_store_all_async(list_of_params)
     
     def get_all_keys(self)->set:
         return self._related_collection.distinct(self._related_col_key_name)

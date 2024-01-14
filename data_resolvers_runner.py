@@ -38,7 +38,6 @@ from pymongo.collection import Collection
 class DataResolversRunner:
     def __init__(self, appsettings_path:str) -> None:
         self._config = self.__read_config_file(appsettings_path)
-        
         connection = MongoDBConnection(self._config['database'])
         self._db = connection.client.get_database(self._config['database']["DB_NAME"])
         
@@ -112,14 +111,20 @@ class DataResolversRunner:
     
     def __initialize_resolvers_parallel_requests(self, resolvers:list[DataResolverBase]):
         all_resolver_settings = dict(self._config['resolvers_settings'])
+
         for resolver in resolvers:
             resolver_settings = all_resolver_settings.get(type(resolver).__name__, None)
             if not isinstance(resolver_settings, dict):
                 continue
+
             parallel_requests = resolver_settings.get('parallelRequests', None)
-            
             if parallel_requests is not None:
                 resolver.parallel_requests = parallel_requests
+
+            batch_size = resolver_settings.get('batchSize', None)
+            if batch_size is not None:
+                resolver.batch_size = batch_size
+
 
     def __get_db_collections(self) -> dict[Collection]:
         all_resolvers = [
@@ -180,8 +185,6 @@ class DataResolversRunner:
             list_of_collections_names.extend(resolver_parameters[1:-1])
         
         set_of_collection_names = set(list_of_collections_names)
-        for col_name in set_of_collection_names:
-            print(f'"{col_name}",')
         return {col_name:self._db.get_collection(col_name) for col_name in set_of_collection_names}
 
     def __read_config_file(self, config_path:str) -> dict:
@@ -190,8 +193,19 @@ class DataResolversRunner:
             config = json.load(f)
         return config
     
+    def __collections_to_resolve_are_valid(self, collections_to_resolve:set[str]) -> bool:
+        all_collection_names = self._collection_data_resolver_dict.keys()
+        for collection_name in collections_to_resolve:
+            if collection_name not in all_collection_names:
+                logging.error(f"{collection_name} nie je valídny názov kolekcie!")
+                return False
+        return True
+    
     def __get_ordered_resolvers_to_run(self) -> list[DataResolverBase]:
         collections_to_resolve_set = set(self._config['collections_to_resolve'])
+        if not self.__collections_to_resolve_are_valid(collections_to_resolve_set):
+            return []
+
         precedence_graph = {}
         for collection_resolver_name in collections_to_resolve_set:
             resolver = self._collection_data_resolver_dict[collection_resolver_name]
