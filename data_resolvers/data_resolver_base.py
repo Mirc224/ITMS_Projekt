@@ -21,6 +21,7 @@ class DataResolverBase(ABC):
         self._parallel_requests = 50
         self._batch_size = 500
         self._semaphore = asyncio.Semaphore(self._parallel_requests)
+        self._sleep_time = 300
 
     def delete_local_data(self):
         self._main_collection.delete_many({})
@@ -75,19 +76,24 @@ class DataResolverBase(ABC):
         async with self._semaphore:
             results = []
             while True:
-                async with s.get(self._remote_url_template.format(**params)) as r:
-                    if r.status == 404:
-                        logging.warning(f'NOT_FOUND: {r.url}' )
-                        return
-                    if r.status != 200:
-                        r.raise_for_status()
-                    fetched_data =  await r.json()
-                    fetched_data = self.transform_fetched_data(fetched_data, **params)
-                    results.extend(fetched_data)
-                    if not self.perform_next_fetch(fetched_data):
-                        break
-                    params = self.get_updated_params(fetched_data, params)
-        
+                try:
+                    async with s.get(self._remote_url_template.format(**params)) as r:
+                        if r.status == 404:
+                            logging.warning(f'NOT_FOUND: {r.url}' )
+                            return
+                        if r.status != 200:
+                            r.raise_for_status() 
+                        fetched_data =  await r.json()
+                        fetched_data = self.transform_fetched_data(fetched_data, **params)
+                        results.extend(fetched_data)
+                        if not self.perform_next_fetch(fetched_data):
+                            break
+                        params = self.get_updated_params(fetched_data, params)
+                except Exception as e:
+                    logging.error(e)
+                    logging.error(f"Nastala chyba, pozdržujem vykonávanie na {self._sleep_time}s!")
+                    await asyncio.sleep(self._sleep_time)
+                    continue        
         if results:
             self._main_collection.insert_many(results)
         
