@@ -116,15 +116,7 @@ class DataResolversRunner:
             resolver_settings = all_resolver_settings.get(type(resolver).__name__, None)
             if not isinstance(resolver_settings, dict):
                 continue
-
-            parallel_requests = resolver_settings.get('parallelRequests', None)
-            if parallel_requests is not None:
-                resolver.parallel_requests = parallel_requests
-
-            batch_size = resolver_settings.get('batchSize', None)
-            if batch_size is not None:
-                resolver.batch_size = batch_size
-
+            resolver.apply_config(resolver_settings)
 
     def __get_db_collections(self) -> dict[Collection]:
         all_resolvers = [

@@ -16,12 +16,13 @@ class DataResolverBase(ABC):
         self._main_collection = main_collection
         self._remote_url_template = remote_url
         self._parallel_requests = -1
-        self._completed_urls = 0
-        self._total_urls_to_complete = 0
+        self._processed_urls = 0
+        self._total_urls_to_process = 0
         self._parallel_requests = 50
         self._batch_size = 500
         self._semaphore = asyncio.Semaphore(self._parallel_requests)
         self._sleep_time = 300
+        self._number_of_retries = 3
 
     def delete_local_data(self):
         self._main_collection.delete_many({})
@@ -55,7 +56,7 @@ class DataResolverBase(ABC):
         logging.info(f"{self._main_collection.name} - Získavanie dát...")
         start = perf_counter()
 
-        for batch_of_params in batched(list_of_params, self._batch_size):
+        for batch_of_params in batched(list_of_params, self.batch_size):
             async with aiohttp.ClientSession() as session:
                 tasks = []
                 for params in batch_of_params:
@@ -67,13 +68,14 @@ class DataResolverBase(ABC):
         logging.info(f'{self._main_collection.name} - Ziskavanie dát trvalo: {stop - start}')
 
     def log_info_about_completion_status(self):
-        if self._total_urls_to_complete == 0:
+        if self._total_urls_to_process == 0:
             return
-        if self._completed_urls % int(math.ceil(self._total_urls_to_complete / 100)) == 0:
-            logging.info(f"{self._main_collection.name} - Spracovaných je {((self._completed_urls / self._total_urls_to_complete)*100):.2f}%")
+        if self._processed_urls % int(math.ceil(self._total_urls_to_process / 100)) == 0:
+            logging.info(f"{self._main_collection.name} - Spracovaných je {((self._processed_urls / self._total_urls_to_process)*100):.2f}%")
 
     async def fetch_async(self, s:ClientSession, params:dict):
         async with self._semaphore:
+            number_of_retries_left = self.number_of_retries
             results = []
             while True:
                 try:
@@ -83,27 +85,35 @@ class DataResolverBase(ABC):
                             return
                         if r.status != 200:
                             r.raise_for_status() 
-                        fetched_data =  await r.json()
+                        fetched_data = await r.json()
                         fetched_data = self.transform_fetched_data(fetched_data, **params)
                         results.extend(fetched_data)
                         if not self.perform_next_fetch(fetched_data):
                             break
                         params = self.get_updated_params(fetched_data, params)
+                        number_of_retries_left = self.number_of_retries
                 except Exception as e:
                     logging.error(e)
-                    logging.error(f"Nastala chyba, pozdržujem vykonávanie na {self._sleep_time}s!")
-                    await asyncio.sleep(self._sleep_time)
+                    if number_of_retries_left <= 0:
+                        logging.error(f"Pre URL {self._remote_url_template.format(**params)} sa po {self.number_of_retries} pokusoch nepodarilo získať výsledok, ukončujem získavanie!")
+                        self.__add_processed_urls_and_log_info()
+                        return
+                    logging.error(f"Nastala chyba, pozdržujem vykonávanie na {self.sleep_time}s!")
+                    await asyncio.sleep(self.sleep_time)
+                    number_of_retries_left -= 1
                     continue        
         if results:
             self._main_collection.insert_many(results)
-        
-        self._completed_urls += 1
+        self.__add_processed_urls_and_log_info()
+    
+    def __add_processed_urls_and_log_info(self):
+        self._processed_urls += 1
         self.log_info_about_completion_status()
     
     async def get_and_store_all_remote_data_async(self):
         list_of_params = self.get_list_of_params()
-        self._completed_urls = 0
-        self._total_urls_to_complete = len(list_of_params)
+        self._processed_urls = 0
+        self._total_urls_to_process = len(list_of_params)
         return await self.fetch_and_store_all_async(list_of_params)
     
     def get_list_of_params(self):
@@ -160,6 +170,32 @@ class DataResolverBase(ABC):
         if value < 1:
             return
         self._batch_size = value
+    
+    @property
+    def sleep_time(self) -> int:
+        return self._sleep_time
+    
+    @sleep_time.setter
+    def sleep_time(self, value:int):
+        if value < 1:
+            return
+        self._sleep_time = value
+
+    @property
+    def number_of_retries(self) -> int:
+        return self._number_of_retries
+    
+    @number_of_retries.setter
+    def number_of_retries(self, value:int):
+        if value < 1:
+            return
+        self._number_of_retries = value
+
+    def apply_config(self, config:dict):
+            self.parallel_requests = config.get('parallelRequests', self.parallel_requests)
+            self.batch_size = config.get('batchSize', self.batch_size)
+            self.sleep_time = config.get('sleepTime', self.sleep_time)
+            self.number_of_retries = config.get('numberOfRetries', self.number_of_retries)
 
 class DataResolverWithMinIdBase(DataResolverBase):
     def __init__(self, main_collection: Collection, remote_url: str):
